@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>The Data Dreamhouse</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/framer-motion@10.16.4/dist/framer-motion.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap');
+        body { font-family: 'Nunito', sans-serif; overflow: hidden; }
+        .pixel-art { image-rendering: pixelated; }
+        .floating { animation: float 6s ease-in-out infinite; }
+        @keyframes float { 0% { transform: translateY(0px); } 50% { transform: translateY(-20px); } 100% { transform: translateY(0px); } }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #fda4af; border-radius: 10px; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+        const { motion, AnimatePresence } = window.Motion;
+
+        // --- GAME DATA & ASSETS ---
+        const CARDS_DB = [
+            { id: 1, name: "Bayesian Brown Cat", rarity: "Common", emoji: "🐱", desc: "Calculates probability of treats." },
+            { id: 2, name: "Gradient Descent Capy", rarity: "Rare", emoji: "🥔", desc: "Optimizes for maximum chill." },
+            { id: 3, name: "Joe Gold-Bird", rarity: "Rare", emoji: "🐦", desc: "He's watching you... lovingly?" },
+            { id: 4, name: "Loz Panda Tea House", rarity: "Legendary", emoji: "🎋", desc: "The ultimate cozy build." },
+            { id: 5, name: "Ravioli The Great", rarity: "Common", emoji: "🥟", desc: "Delicious and comforting." },
+            { id: 6, name: "Weasel Courier", rarity: "Uncommon", emoji: "🦦", desc: "Delivers math problems." },
+            { id: 7, name: "Wet Rat Mode", rarity: "Secret", emoji: "🐀", desc: "It's a lifestyle." }
+        ];
+
+        const MATH_SYMBOLS = ["Σ", "π", "∫", "√", "∞", "λ", "θ"];
+
+        // --- COMPONENTS ---
+
+        const App = () => {
+            const [mood, setMood] = useState("neutral"); // neutral, happy, sad, tired
+            const [isWetRat, setIsWetRat] = useState(false);
+            const [dataCubes, setDataCubes] = useState(0);
+            const [collection, setCollection] = useState([]);
+            const [view, setView] = useState("room"); // room, garden, cards
+            const [notifications, setNotifications] = useState("Welcome Home! 💕");
+
+            // Dynamic Background based on Mood/Rat
+            const getBg = () => {
+                if (isWetRat) return "bg-gray-800";
+                if (mood === "tired") return "bg-indigo-900";
+                if (mood === "sad") return "bg-blue-100";
+                return "bg-pink-100"; // Default Baby Pink
+            };
+
+            const getTextColor = () => {
+                if (isWetRat || mood === "tired") return "text-white";
+                return "text-gray-800";
+            };
+
+            const addData = (amount) => {
+                setDataCubes(prev => prev + amount);
+                triggerConfetti();
+            };
+
+            const triggerConfetti = () => {
+                // Simple visual feedback func
+            };
+
+            const unlockCard = () => {
+                if (dataCubes < 10) {
+                    setNotifications("Need 10 Data Cubes! Solve math! 🧮");
+                    return;
+                }
+                setDataCubes(prev => prev - 10);
+                const randomCard = CARDS_DB[Math.floor(Math.random() * CARDS_DB.length)];
+                setCollection(prev => [...prev, randomCard]);
+                setNotifications(`Got: ${randomCard.name}!`);
+            };
+
+            return (
+                <div className={`w-screen h-screen transition-colors duration-1000 ${getBg()} ${getTextColor()} relative flex flex-col items-center overflow-hidden`}>
+                    
+                    {/* TOP BAR */}
+                    <header className="w-full p-4 flex justify-between items-center z-50">
+                        <div className="flex items-center gap-2">
+                            <div className="bg-white/30 backdrop-blur-md px-4 py-2 rounded-full font-bold shadow-sm">
+                                🧊 {dataCubes} Data
+                            </div>
+                        </div>
+                        <h1 className="text-xl font-black tracking-widest uppercase opacity-80 hidden md:block">
+                            {isWetRat ? "SEWER MODE" : "The Data Dreamhouse"}
+                        </h1>
+                        <button 
+                            onClick={() => setIsWetRat(!isWetRat)}
+                            className="bg-white/30 p-2 rounded-full text-2xl hover:scale-110 transition active:scale-90"
+                            title="Toggle Wet Rat Mode"
+                        >
+                            {isWetRat ? "🛁" : "🐀"}
+                        </button>
+                    </header>
+
+                    {/* MAIN STAGE */}
+                    <main className="flex-1 w-full max-w-4xl relative flex flex-col justify-center items-center p-4">
+                        
+                        {/* THE AVATAR AREA */}
+                        <motion.div 
+                            animate={{ y: [0, -10, 0] }} 
+                            transition={{ repeat: Infinity, duration: 3 }}
+                            className="relative z-10 mb-8"
+                        >
+                            <div className="text-9xl filter drop-shadow-xl relative cursor-pointer" onClick={() => addData(1)}>
+                                {isWetRat ? (
+                                    <span className="grayscale contrast-125">🐀</span>
+                                ) : (
+                                    <span>👸🏻</span>
+                                )}
+                                {/* Avatar Accessories */}
+                                {!isWetRat && <div className="absolute -top-4 -right-2 text-5xl">🎀</div>}
+                                {isWetRat && <div className="absolute -bottom-2 right-0 text-5xl">💧</div>}
+                            </div>
+                            
+                            {/* Speech Bubble */}
+                            <motion.div 
+                                initial={{ opacity: 0, scale: 0 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                key={notifications}
+                                className="absolute -top-16 left-1/2 -translate-x-1/2 whitespace-nowrap bg-white text-gray-800 px-4 py-2 rounded-xl shadow-lg border-2 border-pink-200 text-sm font-bold"
+                            >
+                                {notifications}
+                            </motion.div>
+                        </motion.div>
+
+                        {/* MATH FLOATING PARTICLES (Clicker Game) */}
+                        <div className="absolute inset-0 pointer-events-none">
+                            {MATH_SYMBOLS.map((sym, i) => (
+                                <MathParticle key={i} symbol={sym} onCollect={() => addData(2)} delay={i} />
+                            ))}
+                        </div>
+
+                        {/* MENU BUTTONS */}
+                        <div className="grid grid-cols-3 gap-4 w-full max-w-md z-20">
+                            <MenuBtn label="Relax" icon="🛋️" onClick={() => {setView('room'); setNotifications("Cozy vibes loading...");}} active={view === 'room'} />
+                            <MenuBtn label="Garden" icon="🌿" onClick={() => {setView('garden'); setNotifications("Look at the Fibonacci flowers!");}} active={view === 'garden'} />
+                            <MenuBtn label="Cards" icon="🃏" onClick={() => {setView('cards'); setNotifications("Gotta collect 'em all!");}} active={view === 'cards'} />
+                        </div>
+
+                        {/* INTERACTIVE AREA BASED ON VIEW */}
+                        <div className="mt-8 w-full h-64 bg-white/40 backdrop-blur-md rounded-3xl border-4 border-white/50 p-4 shadow-xl overflow-y-auto relative">
+                            
+                            {view === 'room' && (
+                                <div className="text-center space-y-4">
+                                    <h3 className="font-bold text-lg">Mood Controller</h3>
+                                    <div className="flex justify-center gap-4">
+                                        <MoodBtn mood="tired" emoji="😴" setMood={setMood} current={mood} />
+                                        <MoodBtn mood="neutral" emoji="😐" setMood={setMood} current={mood} />
+                                        <MoodBtn mood="happy" emoji="🥰" setMood={setMood} current={mood} />
+                                    </div>
+                                    <div className="mt-4 p-4 bg-orange-100/50 rounded-xl">
+                                        <p className="text-sm text-orange-800 font-bold">Currently Playing: Lofi Beats to Code To 🎧</p>
+                                    </div>
+                                    {isWetRat && <p className="text-xs mt-2">Trash can is surprisingly cozy...</p>}
+                                </div>
+                            )}
+
+                            {view === 'garden' && (
+                                <div className="text-center relative h-full flex items-center justify-center">
+                                    <p className="absolute top-2 left-2 text-xs opacity-50">Click items to feed pets!</p>
+                                    <div className="grid grid-cols-2 gap-8 text-6xl">
+                                        <motion.div whileTap={{ scale: 0.8 }} onClick={() => addData(5)} className="cursor-pointer">🍝</motion.div>
+                                        <motion.div whileTap={{ scale: 0.8 }} onClick={() => addData(5)} className="cursor-pointer">🍵</motion.div>
+                                    </div>
+                                    <motion.div 
+                                        animate={{ x: [-50, 50], rotate: [0, 5, 0, -5, 0] }}
+                                        transition={{ duration: 5, repeat: Infinity, repeatType: "mirror" }}
+                                        className="absolute bottom-2 text-4xl"
+                                    >
+                                        🐈
+                                    </motion.div>
+                                </div>
+                            )}
+
+                            {view === 'cards' && (
+                                <div className="flex flex-col items-center">
+                                    <button 
+                                        onClick={unlockCard}
+                                        className="bg-gradient-to-r from-pink-400 to-purple-400 text-white font-bold py-2 px-6 rounded-full shadow-lg transform active:scale-95 mb-4"
+                                    >
+                                        Open Pack (10 Data)
+                                    </button>
+                                    <div className="grid grid-cols-3 gap-2 w-full">
+                                        {collection.map((card, idx) => (
+                                            <div key={idx} className="bg-white p-2 rounded-lg shadow text-center flex flex-col items-center animate-pulse-once">
+                                                <div className="text-2xl">{card.emoji}</div>
+                                                <div className="text-[8px] font-bold mt-1 truncate w-full">{card.name}</div>
+                                            </div>
+                                        ))}
+                                        {collection.length === 0 && <p className="col-span-3 text-sm opacity-60">No cards yet. Go do math!</p>}
+                                    </div>
+                                </div>
+                            )}
+
+                        </div>
+
+                    </main>
+
+                    {/* DECORATIVE BOTTOM */}
+                    <div className="w-full h-12 bg-gradient-to-t from-white/50 to-transparent absolute bottom-0"></div>
+                </div>
+            );
+        };
+
+        // --- SUB COMPONENTS ---
+
+        const MathParticle = ({ symbol, onCollect, delay }) => {
+            return (
+                <motion.div 
+                    initial={{ x: Math.random() * window.innerWidth, y: window.innerHeight + 100 }}
+                    animate={{ y: -100 }}
+                    transition={{ duration: 10 + Math.random() * 10, repeat: Infinity, delay: delay, ease: "linear" }}
+                    className="absolute pointer-events-auto cursor-pointer p-4 text-pink-400/50 hover:text-pink-600 font-serif font-bold text-2xl hover:scale-150 transition"
+                    onClick={(e) => {
+                        e.target.style.opacity = 0; 
+                        onCollect();
+                        setTimeout(() => e.target.style.opacity = 1, 2000); // Respawn hack
+                    }}
+                >
+                    {symbol}
+                </motion.div>
+            )
+        };
+
+        const MenuBtn = ({ label, icon, onClick, active }) => (
+            <button 
+                onClick={onClick}
+                className={`flex flex-col items-center justify-center p-3 rounded-2xl transition-all duration-300 ${active ? 'bg-white shadow-lg scale-105' : 'bg-white/40 hover:bg-white/60'}`}
+            >
+                <span className="text-2xl mb-1">{icon}</span>
+                <span className="text-xs font-bold text-gray-600">{label}</span>
+            </button>
+        );
+
+        const MoodBtn = ({ mood, emoji, setMood, current }) => (
+            <button 
+                onClick={() => setMood(mood)}
+                className={`text-3xl p-3 rounded-full transition ${current === mood ? 'bg-pink-300 shadow-inner' : 'hover:bg-white/50'}`}
+            >
+                {emoji}
+            </button>
+        );
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
