@@ -3,257 +3,377 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>The Data Dreamhouse</title>
+    <title>Kiu's Data Dreamhouse</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://unpkg.com/framer-motion@10.16.4/dist/framer-motion.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;600;700&display=swap" rel="stylesheet">
     
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap');
-        body { font-family: 'Nunito', sans-serif; overflow: hidden; }
-        .pixel-art { image-rendering: pixelated; }
-        .floating { animation: float 6s ease-in-out infinite; }
-        @keyframes float { 0% { transform: translateY(0px); } 50% { transform: translateY(-20px); } 100% { transform: translateY(0px); } }
-        /* Custom Scrollbar */
-        ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #fda4af; border-radius: 10px; }
+        body { font-family: 'Quicksand', sans-serif; overflow: hidden; touch-action: none; }
+        /* Isometric Base Classes */
+        .iso-container { transform: rotateX(60deg) rotateZ(-45deg); transform-style: preserve-3d; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        /* Custom Animations */
+        @keyframes float { 0% { transform: translateY(0px); } 50% { transform: translateY(-10px); } 100% { transform: translateY(0px); } }
+        .floating { animation: float 4s ease-in-out infinite; }
     </style>
 </head>
 <body>
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useEffect } = React;
+        const { useState, useEffect, useRef } = React;
         const { motion, AnimatePresence } = window.Motion;
 
-        // --- GAME DATA & ASSETS ---
-        const CARDS_DB = [
-            { id: 1, name: "Bayesian Brown Cat", rarity: "Common", emoji: "🐱", desc: "Calculates probability of treats." },
-            { id: 2, name: "Gradient Descent Capy", rarity: "Rare", emoji: "🥔", desc: "Optimizes for maximum chill." },
-            { id: 3, name: "Joe Gold-Bird", rarity: "Rare", emoji: "🐦", desc: "He's watching you... lovingly?" },
-            { id: 4, name: "Loz Panda Tea House", rarity: "Legendary", emoji: "🎋", desc: "The ultimate cozy build." },
-            { id: 5, name: "Ravioli The Great", rarity: "Common", emoji: "🥟", desc: "Delicious and comforting." },
-            { id: 6, name: "Weasel Courier", rarity: "Uncommon", emoji: "🦦", desc: "Delivers math problems." },
-            { id: 7, name: "Wet Rat Mode", rarity: "Secret", emoji: "🐀", desc: "It's a lifestyle." }
+        // --- DATA & ASSETS ---
+        const CARDS = [
+            { id: 1, name: "Bayesian Brown Cat", type: "Logic/Fluff", desc: "Posterior probability of being cute is 100%.", emoji: "🐱" },
+            { id: 2, name: "Gradient Descent Capy", type: "Math/Chill", desc: "Finding the local minimum of stress.", emoji: "🥔" },
+            { id: 3, name: "Joe Gold-bird", type: "Thriller", desc: "He’s just protecting you... from the bushes.", emoji: "🐦" },
+            { id: 4, name: "The Panda Tea House", type: "Building", desc: "Loz Block Set #1432. Requires assembly.", emoji: "🎋" },
+            { id: 5, name: "Ravioli Bowl", type: "Food", desc: "Kiu's comfort fuel.", emoji: "🥟" },
+            { id: 6, name: "Sunset Lamp", type: "Decor", desc: "Aesthetic vibes only.", emoji: "🌅" }
         ];
 
-        const MATH_SYMBOLS = ["Σ", "π", "∫", "√", "∞", "λ", "θ"];
+        const FIBONACCI_SEQ = [1, 1, 2, 3, 5, 8, 13, 21];
 
-        // --- COMPONENTS ---
-
+        // --- MAIN APP ---
         const App = () => {
-            const [mood, setMood] = useState("neutral"); // neutral, happy, sad, tired
+            const [started, setStarted] = useState(false);
+            const [mood, setMood] = useState("neutral"); // tired, sad, happy, neutral
             const [isWetRat, setIsWetRat] = useState(false);
+            const [view, setView] = useState("apartment"); // apartment, garden, cards
             const [dataCubes, setDataCubes] = useState(0);
             const [collection, setCollection] = useState([]);
-            const [view, setView] = useState("room"); // room, garden, cards
-            const [notifications, setNotifications] = useState("Welcome Home! 💕");
+            const [notification, setNotification] = useState("");
+            const [showMail, setShowMail] = useState(false);
 
-            // Dynamic Background based on Mood/Rat
-            const getBg = () => {
-                if (isWetRat) return "bg-gray-800";
-                if (mood === "tired") return "bg-indigo-900";
-                if (mood === "sad") return "bg-blue-100";
-                return "bg-pink-100"; // Default Baby Pink
+            // Audio Refs (Placeholder logic for sound)
+            const playPop = () => { /* In a real build, audio.play() goes here */ };
+
+            // Notification Helper
+            const notify = (text) => {
+                setNotification(text);
+                setTimeout(() => setNotification(""), 3000);
             };
 
-            const getTextColor = () => {
-                if (isWetRat || mood === "tired") return "text-white";
-                return "text-gray-800";
-            };
-
-            const addData = (amount) => {
-                setDataCubes(prev => prev + amount);
-                triggerConfetti();
-            };
-
-            const triggerConfetti = () => {
-                // Simple visual feedback func
-            };
-
-            const unlockCard = () => {
-                if (dataCubes < 10) {
-                    setNotifications("Need 10 Data Cubes! Solve math! 🧮");
+            // Unlock Card Logic
+            const pullCard = () => {
+                if (dataCubes < 15) {
+                    notify("Need 15 Data Cubes! Do some math! 📉");
                     return;
                 }
-                setDataCubes(prev => prev - 10);
-                const randomCard = CARDS_DB[Math.floor(Math.random() * CARDS_DB.length)];
-                setCollection(prev => [...prev, randomCard]);
-                setNotifications(`Got: ${randomCard.name}!`);
+                setDataCubes(prev => prev - 15);
+                const card = CARDS[Math.floor(Math.random() * CARDS.length)];
+                setCollection(prev => [...prev, card]);
+                notify(`Weasel Postman brought: ${card.name}!`);
             };
 
-            return (
-                <div className={`w-screen h-screen transition-colors duration-1000 ${getBg()} ${getTextColor()} relative flex flex-col items-center overflow-hidden`}>
-                    
-                    {/* TOP BAR */}
-                    <header className="w-full p-4 flex justify-between items-center z-50">
-                        <div className="flex items-center gap-2">
-                            <div className="bg-white/30 backdrop-blur-md px-4 py-2 rounded-full font-bold shadow-sm">
-                                🧊 {dataCubes} Data
+            // Dynamic Styling based on state
+            const getBg = () => {
+                if (isWetRat) return "bg-gray-900";
+                if (mood === "tired") return "bg-indigo-950";
+                if (mood === "sad") return "bg-blue-100";
+                return "bg-pink-50"; 
+            };
+
+            // Intro Screen (Emotional Check-in)
+            if (!started) {
+                return (
+                    <div className="h-screen w-screen bg-pink-100 flex flex-col items-center justify-center p-6 text-center">
+                        <motion.div initial={{scale: 0.8, opacity:0}} animate={{scale:1, opacity:1}} className="bg-white p-8 rounded-3xl shadow-xl max-w-md">
+                            <h1 className="text-2xl font-bold text-gray-700 mb-2">Welcome Home, Kiu 💕</h1>
+                            <p className="text-gray-500 mb-6">How is the weather inside today?</p>
+                            <div className="grid grid-cols-2 gap-4">
+                                <button onClick={() => {setMood("tired"); setStarted(true);}} className="p-4 bg-indigo-100 rounded-xl hover:bg-indigo-200 transition">😴 Tired</button>
+                                <button onClick={() => {setMood("sad"); setStarted(true);}} className="p-4 bg-blue-100 rounded-xl hover:bg-blue-200 transition">🌧️ Sad</button>
+                                <button onClick={() => {setMood("happy"); setStarted(true);}} className="p-4 bg-yellow-100 rounded-xl hover:bg-yellow-200 transition">✨ Productive</button>
+                                <button onClick={() => {setMood("neutral"); setStarted(true);}} className="p-4 bg-pink-100 rounded-xl hover:bg-pink-200 transition">😐 Just Vibing</button>
                             </div>
+                        </motion.div>
+                    </div>
+                );
+            }
+
+            return (
+                <div className={`h-screen w-screen transition-colors duration-1000 overflow-hidden relative flex flex-col ${getBg()}`}>
+                    
+                    {/* TOP HUD */}
+                    <div className="absolute top-0 left-0 w-full p-4 z-50 flex justify-between items-start pointer-events-none">
+                        <div className="bg-white/80 backdrop-blur pointer-events-auto px-4 py-2 rounded-full shadow-lg font-bold text-pink-600 border-2 border-pink-100 flex items-center gap-2">
+                            🧊 {dataCubes} <span className="text-xs text-gray-500">Data Cubes</span>
                         </div>
-                        <h1 className="text-xl font-black tracking-widest uppercase opacity-80 hidden md:block">
-                            {isWetRat ? "SEWER MODE" : "The Data Dreamhouse"}
-                        </h1>
-                        <button 
+                        
+                        {/* WET RAT TOGGLE (Hidden in a toilet/gear icon usually, but top right for ease) */}
+                        <motion.button 
+                            whileTap={{ scale: 0.9 }}
                             onClick={() => setIsWetRat(!isWetRat)}
-                            className="bg-white/30 p-2 rounded-full text-2xl hover:scale-110 transition active:scale-90"
+                            className="pointer-events-auto bg-white/80 p-3 rounded-full shadow-lg text-2xl"
                             title="Toggle Wet Rat Mode"
                         >
                             {isWetRat ? "🛁" : "🐀"}
-                        </button>
-                    </header>
+                        </motion.button>
+                    </div>
 
-                    {/* MAIN STAGE */}
-                    <main className="flex-1 w-full max-w-4xl relative flex flex-col justify-center items-center p-4">
-                        
-                        {/* THE AVATAR AREA */}
-                        <motion.div 
-                            animate={{ y: [0, -10, 0] }} 
-                            transition={{ repeat: Infinity, duration: 3 }}
-                            className="relative z-10 mb-8"
-                        >
-                            <div className="text-9xl filter drop-shadow-xl relative cursor-pointer" onClick={() => addData(1)}>
-                                {isWetRat ? (
-                                    <span className="grayscale contrast-125">🐀</span>
-                                ) : (
-                                    <span>👸🏻</span>
-                                )}
-                                {/* Avatar Accessories */}
-                                {!isWetRat && <div className="absolute -top-4 -right-2 text-5xl">🎀</div>}
-                                {isWetRat && <div className="absolute -bottom-2 right-0 text-5xl">💧</div>}
-                            </div>
-                            
-                            {/* Speech Bubble */}
+                    {/* NOTIFICATIONS */}
+                    <AnimatePresence>
+                        {notification && (
                             <motion.div 
-                                initial={{ opacity: 0, scale: 0 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                key={notifications}
-                                className="absolute -top-16 left-1/2 -translate-x-1/2 whitespace-nowrap bg-white text-gray-800 px-4 py-2 rounded-xl shadow-lg border-2 border-pink-200 text-sm font-bold"
+                                initial={{ y: -50, opacity: 0 }}
+                                animate={{ y: 20, opacity: 1 }}
+                                exit={{ y: -50, opacity: 0 }}
+                                className="absolute top-16 left-0 right-0 mx-auto w-max z-50 bg-white px-6 py-2 rounded-full shadow-xl border-2 border-pink-300 font-bold text-gray-700"
                             >
-                                {notifications}
+                                {notification}
                             </motion.div>
-                        </motion.div>
+                        )}
+                    </AnimatePresence>
 
-                        {/* MATH FLOATING PARTICLES (Clicker Game) */}
-                        <div className="absolute inset-0 pointer-events-none">
-                            {MATH_SYMBOLS.map((sym, i) => (
-                                <MathParticle key={i} symbol={sym} onCollect={() => addData(2)} delay={i} />
-                            ))}
-                        </div>
+                    {/* MAIN CONTENT AREA */}
+                    <main className="flex-1 relative w-full h-full">
+                        {/* VIEW: APARTMENT (Home) */}
+                        {view === 'apartment' && (
+                            <ApartmentView isWetRat={isWetRat} mood={mood} onInteract={() => setDataCubes(p => p + 1)} />
+                        )}
 
-                        {/* MENU BUTTONS */}
-                        <div className="grid grid-cols-3 gap-4 w-full max-w-md z-20">
-                            <MenuBtn label="Relax" icon="🛋️" onClick={() => {setView('room'); setNotifications("Cozy vibes loading...");}} active={view === 'room'} />
-                            <MenuBtn label="Garden" icon="🌿" onClick={() => {setView('garden'); setNotifications("Look at the Fibonacci flowers!");}} active={view === 'garden'} />
-                            <MenuBtn label="Cards" icon="🃏" onClick={() => {setView('cards'); setNotifications("Gotta collect 'em all!");}} active={view === 'cards'} />
-                        </div>
+                        {/* VIEW: GARDEN (Math Games) */}
+                        {view === 'garden' && (
+                            <GardenView onWin={(amt) => { setDataCubes(p => p + amt); notify(`Harvested ${amt} Data!`); }} />
+                        )}
 
-                        {/* INTERACTIVE AREA BASED ON VIEW */}
-                        <div className="mt-8 w-full h-64 bg-white/40 backdrop-blur-md rounded-3xl border-4 border-white/50 p-4 shadow-xl overflow-y-auto relative">
-                            
-                            {view === 'room' && (
-                                <div className="text-center space-y-4">
-                                    <h3 className="font-bold text-lg">Mood Controller</h3>
-                                    <div className="flex justify-center gap-4">
-                                        <MoodBtn mood="tired" emoji="😴" setMood={setMood} current={mood} />
-                                        <MoodBtn mood="neutral" emoji="😐" setMood={setMood} current={mood} />
-                                        <MoodBtn mood="happy" emoji="🥰" setMood={setMood} current={mood} />
-                                    </div>
-                                    <div className="mt-4 p-4 bg-orange-100/50 rounded-xl">
-                                        <p className="text-sm text-orange-800 font-bold">Currently Playing: Lofi Beats to Code To 🎧</p>
-                                    </div>
-                                    {isWetRat && <p className="text-xs mt-2">Trash can is surprisingly cozy...</p>}
-                                </div>
-                            )}
-
-                            {view === 'garden' && (
-                                <div className="text-center relative h-full flex items-center justify-center">
-                                    <p className="absolute top-2 left-2 text-xs opacity-50">Click items to feed pets!</p>
-                                    <div className="grid grid-cols-2 gap-8 text-6xl">
-                                        <motion.div whileTap={{ scale: 0.8 }} onClick={() => addData(5)} className="cursor-pointer">🍝</motion.div>
-                                        <motion.div whileTap={{ scale: 0.8 }} onClick={() => addData(5)} className="cursor-pointer">🍵</motion.div>
-                                    </div>
-                                    <motion.div 
-                                        animate={{ x: [-50, 50], rotate: [0, 5, 0, -5, 0] }}
-                                        transition={{ duration: 5, repeat: Infinity, repeatType: "mirror" }}
-                                        className="absolute bottom-2 text-4xl"
-                                    >
-                                        🐈
-                                    </motion.div>
-                                </div>
-                            )}
-
-                            {view === 'cards' && (
-                                <div className="flex flex-col items-center">
-                                    <button 
-                                        onClick={unlockCard}
-                                        className="bg-gradient-to-r from-pink-400 to-purple-400 text-white font-bold py-2 px-6 rounded-full shadow-lg transform active:scale-95 mb-4"
-                                    >
-                                        Open Pack (10 Data)
-                                    </button>
-                                    <div className="grid grid-cols-3 gap-2 w-full">
-                                        {collection.map((card, idx) => (
-                                            <div key={idx} className="bg-white p-2 rounded-lg shadow text-center flex flex-col items-center animate-pulse-once">
-                                                <div className="text-2xl">{card.emoji}</div>
-                                                <div className="text-[8px] font-bold mt-1 truncate w-full">{card.name}</div>
-                                            </div>
-                                        ))}
-                                        {collection.length === 0 && <p className="col-span-3 text-sm opacity-60">No cards yet. Go do math!</p>}
-                                    </div>
-                                </div>
-                            )}
-
-                        </div>
-
+                        {/* VIEW: CARDS (Collection) */}
+                        {view === 'cards' && (
+                            <CollectionView collection={collection} onPull={pullCard} />
+                        )}
                     </main>
 
-                    {/* DECORATIVE BOTTOM */}
-                    <div className="w-full h-12 bg-gradient-to-t from-white/50 to-transparent absolute bottom-0"></div>
+                    {/* MAILBOX MODAL */}
+                    {showMail && (
+                        <div className="absolute inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={() => setShowMail(false)}>
+                            <motion.div 
+                                initial={{ scale: 0.5 }} animate={{ scale: 1 }}
+                                className="bg-white p-8 rounded-2xl max-w-sm w-full relative rotate-1 shadow-2xl"
+                                onClick={(e) => e.stopPropagation()}
+                            >
+                                <div className="absolute top-0 left-0 w-full h-4 bg-red-300/50"></div>
+                                <h2 className="font-handwriting text-2xl font-bold mb-4 text-gray-700">Dear Kiu,</h2>
+                                <p className="font-handwriting text-gray-600 leading-relaxed mb-4">
+                                    Just wanted to remind you that you're doing great. Whether you're feeling like a data scientist princess or a little wet rat, I'm here for you. <br/><br/>
+                                    Hope this little digital home gives you some cozy vibes. <br/>
+                                    P.S. I'm keeping my Pokemon cards though.
+                                </p>
+                                <p className="text-right font-bold text-pink-500">- Your Bestie</p>
+                            </motion.div>
+                        </div>
+                    )}
+
+                    {/* BOTTOM NAV BAR */}
+                    <nav className="absolute bottom-6 left-0 right-0 mx-auto w-[90%] max-w-md bg-white/90 backdrop-blur-xl rounded-2xl p-2 shadow-2xl border border-white/50 flex justify-around z-50">
+                        <NavBtn active={view==='apartment'} icon="🏠" label="Home" onClick={() => setView('apartment')} />
+                        <NavBtn active={view==='garden'} icon="🌿" label="Math Garden" onClick={() => setView('garden')} />
+                        <NavBtn active={view==='cards'} icon="🃏" label="Binder" onClick={() => setView('cards')} />
+                        <div className="w-px h-10 bg-gray-200 mx-2"></div>
+                        <NavBtn active={false} icon="📬" label="Note" onClick={() => setShowMail(true)} />
+                    </nav>
+
                 </div>
             );
         };
 
-        // --- SUB COMPONENTS ---
+        // --- SUB VIEWS ---
 
-        const MathParticle = ({ symbol, onCollect, delay }) => {
+        // 1. APARTMENT VIEW (The Visual Core)
+        const ApartmentView = ({ isWetRat, mood, onInteract }) => {
             return (
-                <motion.div 
-                    initial={{ x: Math.random() * window.innerWidth, y: window.innerHeight + 100 }}
-                    animate={{ y: -100 }}
-                    transition={{ duration: 10 + Math.random() * 10, repeat: Infinity, delay: delay, ease: "linear" }}
-                    className="absolute pointer-events-auto cursor-pointer p-4 text-pink-400/50 hover:text-pink-600 font-serif font-bold text-2xl hover:scale-150 transition"
-                    onClick={(e) => {
-                        e.target.style.opacity = 0; 
-                        onCollect();
-                        setTimeout(() => e.target.style.opacity = 1, 2000); // Respawn hack
-                    }}
-                >
-                    {symbol}
-                </motion.div>
-            )
+                <div className="w-full h-full flex items-center justify-center overflow-hidden relative">
+                    {/* Background City/Garden Toggle Visual */}
+                    <div className={`absolute inset-0 transition-all duration-1000 ${isWetRat ? 'bg-gray-800' : 'bg-gradient-to-b from-pink-200 to-white'}`}>
+                        {!isWetRat && <div className="absolute top-20 right-20 text-6xl opacity-20 floating">☁️</div>}
+                        {!isWetRat && <div className="absolute top-40 left-10 text-4xl opacity-20 floating" style={{animationDelay: '1s'}}>☁️</div>}
+                    </div>
+
+                    {/* The Isometric Room */}
+                    <motion.div 
+                        initial={{ scale: 0.8, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        className="relative w-64 h-64 md:w-80 md:h-80 bg-white rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.1)] border-8 border-white flex flex-col items-center justify-center z-10"
+                        style={{
+                            boxShadow: isWetRat ? "0 0 50px #4ade80" : "0 20px 60px rgba(255, 192, 203, 0.4)"
+                        }}
+                    >
+                        {/* Floor Texture */}
+                        <div className={`absolute inset-2 rounded-2xl opacity-20 ${isWetRat ? 'bg-green-900' : 'bg-pink-100'}`} 
+                             style={{backgroundImage: 'radial-gradient(#cea0aa 1px, transparent 1px)', backgroundSize: '10px 10px'}}></div>
+                        
+                        {/* The Character */}
+                        <motion.div 
+                            className="text-[80px] z-20 cursor-pointer relative"
+                            whileHover={{ scale: 1.1 }}
+                            whileTap={{ scale: 0.9, rotate: 10 }}
+                            onClick={onInteract}
+                        >
+                            {isWetRat ? "🐀" : "👸🏻"}
+                            {/* Clothes/Accessories */}
+                            {!isWetRat && <div className="absolute bottom-0 left-0 w-full text-center text-4xl pointer-events-none transform translate-y-2">🩰</div>}
+                            {isWetRat && <div className="absolute -top-4 right-0 text-3xl animate-bounce">💧</div>}
+                        </motion.div>
+
+                        {/* Room Items */}
+                        <div className="absolute bottom-4 left-4 text-4xl cursor-pointer hover:scale-110 transition" onClick={onInteract} title="Refill Ravioli">
+                            {isWetRat ? "🗑️" : "🥟"}
+                        </div>
+                        <div className="absolute top-4 right-4 text-4xl hover:rotate-12 transition cursor-pointer" title="Loz Blocks">
+                            {isWetRat ? "🍕" : "🎋"}
+                        </div>
+                        <div className="absolute top-4 left-4 text-4xl animate-pulse" title="Sunset Lamp">
+                            {isWetRat ? "🔦" : "🌅"}
+                        </div>
+
+                        {/* Speech Bubble */}
+                        <div className="absolute -top-12 bg-white px-3 py-1 rounded-lg text-xs font-bold shadow border border-pink-100 animate-bounce">
+                            {isWetRat ? "Sewer life..." : "So cozy!"}
+                        </div>
+                    </motion.div>
+
+                    {/* Lighting Overlay */}
+                    <div className={`absolute inset-0 pointer-events-none mix-blend-overlay ${mood === 'tired' ? 'bg-blue-900/40' : 'bg-orange-500/0'}`}></div>
+                </div>
+            );
         };
 
-        const MenuBtn = ({ label, icon, onClick, active }) => (
-            <button 
-                onClick={onClick}
-                className={`flex flex-col items-center justify-center p-3 rounded-2xl transition-all duration-300 ${active ? 'bg-white shadow-lg scale-105' : 'bg-white/40 hover:bg-white/60'}`}
-            >
-                <span className="text-2xl mb-1">{icon}</span>
-                <span className="text-xs font-bold text-gray-600">{label}</span>
-            </button>
-        );
+        // 2. GARDEN VIEW (Math Games)
+        const GardenView = ({ onWin }) => {
+            const [game, setGame] = useState('fibonacci'); // fibonacci or regression
+            const [fibIndex, setFibIndex] = useState(0);
+            
+            // Regression Game State
+            const [stars, setStars] = useState(Array.from({length: 5}, () => ({x: Math.random()*80 + 10, y: Math.random()*80 + 10})));
+            const [lineDrawn, setLineDrawn] = useState(false);
 
-        const MoodBtn = ({ mood, emoji, setMood, current }) => (
-            <button 
-                onClick={() => setMood(mood)}
-                className={`text-3xl p-3 rounded-full transition ${current === mood ? 'bg-pink-300 shadow-inner' : 'hover:bg-white/50'}`}
-            >
-                {emoji}
+            const handleFibClick = (val) => {
+                if (val === FIBONACCI_SEQ[fibIndex]) {
+                    if (fibIndex === FIBONACCI_SEQ.length - 1) {
+                        onWin(10);
+                        setFibIndex(0); // Reset
+                    } else {
+                        setFibIndex(p => p + 1);
+                    }
+                } else {
+                    setFibIndex(0); // Mistake resets
+                }
+            };
+
+            const solveRegression = () => {
+                setLineDrawn(true);
+                setTimeout(() => {
+                    onWin(15);
+                    setLineDrawn(false);
+                    setStars(Array.from({length: 5}, () => ({x: Math.random()*80 + 10, y: Math.random()*80 + 10})));
+                }, 1500);
+            };
+
+            return (
+                <div className="w-full h-full p-6 pt-20 flex flex-col items-center">
+                    <div className="flex gap-4 mb-6">
+                        <button onClick={() => setGame('fibonacci')} className={`px-4 py-2 rounded-full font-bold ${game==='fibonacci' ? 'bg-pink-500 text-white' : 'bg-white text-gray-500'}`}>Fibonacci 🌻</button>
+                        <button onClick={() => setGame('regression')} className={`px-4 py-2 rounded-full font-bold ${game==='regression' ? 'bg-blue-500 text-white' : 'bg-white text-gray-500'}`}>Regression 📉</button>
+                    </div>
+
+                    {game === 'fibonacci' && (
+                        <div className="bg-white/50 backdrop-blur rounded-3xl p-6 w-full max-w-md shadow-xl text-center">
+                            <h3 className="text-gray-600 mb-4 font-bold">Click the sequence order!</h3>
+                            <p className="mb-4 text-2xl font-mono text-pink-600">{FIBONACCI_SEQ.slice(0, fibIndex).join(", ")}...</p>
+                            <div className="grid grid-cols-4 gap-4">
+                                {[1, 2, 3, 5, 8, 13, 21, 1].sort(() => Math.random() - 0.5).map((num, i) => (
+                                    <motion.button 
+                                        key={i}
+                                        whileTap={{ scale: 0.9 }}
+                                        onClick={() => handleFibClick(num)}
+                                        className="bg-pink-200 text-pink-800 w-12 h-12 rounded-full font-bold shadow-md hover:bg-pink-300"
+                                    >
+                                        {num}
+                                    </motion.button>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {game === 'regression' && (
+                        <div className="bg-indigo-900 rounded-3xl p-4 w-full max-w-md shadow-xl aspect-square relative overflow-hidden">
+                            <h3 className="text-white/50 text-center mb-2 text-xs">Find the line of best fit to summon Capybara</h3>
+                            {stars.map((s, i) => (
+                                <div key={i} className="absolute w-2 h-2 bg-yellow-200 rounded-full shadow-[0_0_10px_white]" style={{left: `${s.x}%`, top: `${s.y}%`}}></div>
+                            ))}
+                            {lineDrawn && (
+                                <motion.div 
+                                    initial={{ width: 0 }} animate={{ width: "100%" }} 
+                                    className="absolute top-1/2 left-0 h-1 bg-red-400 rotate-12 origin-left"
+                                ></motion.div>
+                            )}
+                             {lineDrawn && (
+                                <motion.div 
+                                    initial={{ scale: 0 }} animate={{ scale: 1 }} 
+                                    className="absolute inset-0 flex items-center justify-center text-6xl"
+                                >
+                                    🥔
+                                </motion.div>
+                            )}
+                            <button onClick={solveRegression} className="absolute bottom-4 left-0 right-0 mx-auto w-32 bg-white text-indigo-900 font-bold py-1 rounded-full shadow-lg">Fit Line</button>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        // 3. COLLECTION VIEW
+        const CollectionView = ({ collection, onPull }) => {
+            return (
+                <div className="w-full h-full p-6 pt-20 overflow-y-auto pb-32">
+                    <div className="text-center mb-8">
+                        <motion.button 
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={onPull}
+                            className="bg-gradient-to-r from-pink-500 to-purple-500 text-white text-lg font-bold py-3 px-8 rounded-2xl shadow-xl border-b-4 border-purple-700"
+                        >
+                            Open Pack (15 🧊)
+                        </motion.button>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                        {collection.map((card, idx) => (
+                            <motion.div 
+                                key={idx}
+                                initial={{ scale: 0 }} animate={{ scale: 1 }}
+                                className="bg-white p-3 rounded-xl shadow-md border-2 border-gray-100 flex flex-col items-center text-center relative overflow-hidden"
+                            >
+                                <div className="absolute top-0 right-0 bg-yellow-200 text-[10px] font-bold px-2 py-1 rounded-bl-lg">{card.type}</div>
+                                <div className="text-5xl mb-2">{card.emoji}</div>
+                                <h4 className="font-bold text-gray-800 text-sm">{card.name}</h4>
+                                <p className="text-[10px] text-gray-500 mt-1">{card.desc}</p>
+                            </motion.div>
+                        ))}
+                        {collection.length === 0 && (
+                            <div className="col-span-2 text-center text-gray-400 py-10">
+                                No cards yet. The Weasel Postman is waiting!
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        };
+
+        // --- SHARED COMPONENTS ---
+        const NavBtn = ({ active, icon, label, onClick }) => (
+            <button onClick={onClick} className={`flex flex-col items-center transition ${active ? 'opacity-100 scale-110' : 'opacity-50'}`}>
+                <span className="text-2xl">{icon}</span>
+                <span className="text-[10px] font-bold">{label}</span>
             </button>
         );
 
